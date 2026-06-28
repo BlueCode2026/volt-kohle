@@ -1,0 +1,91 @@
+---
+description: C# Code-Konventionen für Volt & Kohle
+globs: **/*.cs
+alwaysApply: false
+---
+
+# C# Code-Konventionen
+
+## Pflichtregeln
+
+- Alle serialisierten Felder: `[SerializeField] private` — kein `public` für Unity-Felder
+- Öffentliche Properties (readonly): `public double Currency => _currency;`
+- Alle Manager: MonoBehaviour, kein `new`-Konstruktor
+- Statische Hilfsklassen (UIEventBroker, NumberFormatter, GameConstants): kein MonoBehaviour
+- Kein `UnityEngine.JsonUtility` — immer `Newtonsoft.Json` (`JsonConvert.SerializeObject`)
+- Währungen und XP: `double`, nie `float` oder `int`
+- Energy und RaidRisk: `float` [0..1]
+
+## UIEventBroker — Pflichtmuster für alle UI-Klassen
+
+```csharp
+private void OnEnable()
+{
+    UIEventBroker.OnCurrencyChanged += HandleCurrencyChanged;
+}
+
+private void OnDisable()
+{
+    UIEventBroker.OnCurrencyChanged -= HandleCurrencyChanged;
+}
+
+private void HandleCurrencyChanged(double newBalance)
+{
+    _label.text = NumberFormatter.Format(newBalance);
+}
+```
+
+**Niemals** Manager-Instanzen direkt in UI-Klassen referenzieren.
+
+## Bestehende Events in UIEventBroker
+
+```csharp
+OnCurrencyChanged(double)
+OnXPChanged(double)
+OnPlayerLevelUp(int)
+OnEnergyChanged(float current, float max)
+OnRaidRiskChanged(float riskLevel)
+OnPhaseUnlocked(int phaseIndex)
+OnLocationChanged(int locationIndex)
+OnOfflineEarningsReady(double earnings, TimeSpan elapsed)
+OnPrestigeCompleted(int founderPts, double newMult)
+```
+
+## Wichtige bestehende Methoden
+
+```csharp
+// EconomyManager
+economyManager.AddCurrency(double amount)
+economyManager.SpendCurrency(double amount) // returns bool
+economyManager.AddXP(double amount)
+economyManager.AddPassiveIncomeSource(double incomePerSec)
+economyManager.RemovePassiveIncomeSource(double incomePerSec)
+
+// GameManager
+GameManager.Instance.EconomyManager
+GameManager.Instance.SaveManager
+GameManager.Instance.SaveNow()
+
+// NumberFormatter
+NumberFormatter.Format(double value)       // "42.3M €"
+NumberFormatter.FormatRate(double perSec)  // "1.5K/s €"
+NumberFormatter.FormatRaw(double value)    // "42.3M" (ohne €)
+
+// GameConstants
+GameConstants.BASE_CLICK_VALUE             // 1.0
+GameConstants.PASSIVE_INCOME_TICK_SECONDS  // 1f
+GameConstants.OFFLINE_EARNINGS_CAP_HOURS   // 12
+GameConstants.RAID_RISK_INCREMENT          // 0.15f per Schwarzarbeit-Klick
+GameConstants.RAID_RISK_DECAY_PER_SEC      // 0.005f
+```
+
+## Neue Manager anlegen
+
+1. MonoBehaviour erstellen, `[SerializeField] private`-Felder
+2. `[SerializeField]`-Referenz in `GameManager.cs` als auskommentierte Zeile vorbereitet — einkommentieren und im Inspector verdrahten
+3. `BuildSaveData()` in `GameManager.cs` um neue Felder erweitern
+4. Neue Events in `UIEventBroker.cs` als `static event` + `Raise`-Methode eintragen
+
+## Keine Magic Numbers
+
+Alle Balance-Werte gehören in `GameConstants.cs`, nicht direkt im Code.

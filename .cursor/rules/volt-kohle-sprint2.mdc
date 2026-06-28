@@ -1,0 +1,67 @@
+---
+description: Sprint 2 — Core Gameplay Implementierungsplan
+alwaysApply: false
+globs: Assets/_Game/Scripts/Gameplay/**,Assets/_Game/Scripts/UI/HUD/**
+---
+
+# Sprint 2 — Core Gameplay
+
+## Zu erstellende Dateien
+
+Alle neuen Scripts unter `Assets/_Game/Scripts/`:
+
+| Datei | Ordner | Beschreibung |
+|-------|--------|--------------|
+| `ClickManager.cs` | `Gameplay/` | Manuelles Klicken → EnergySystem prüfen → EconomyManager.AddCurrency() |
+| `EnergySystem.cs` | `Gameplay/` | Burnout-Mechanik: MaxEnergy, CurrentEnergy, RegenRate |
+| `RaidRiskSystem.cs` | `Gameplay/` | Zoll-Risiko-Leiste + Razzia-Event bei 100% |
+| `ProgressionManager.cs` | `Gameplay/` | PlayerLevel, CurrentPhase, LocationIndex, Phase-1-Unlock-Logic |
+| `CurrencyDisplay.cs` | `UI/HUD/` | Subscribed auf OnCurrencyChanged |
+| `EnergyBar.cs` | `UI/HUD/` | Subscribed auf OnEnergyChanged |
+| `RaidRiskBar.cs` | `UI/HUD/` | Subscribed auf OnRaidRiskChanged |
+
+## ClickManager — Verhalten
+
+- Button im UI ruft `ClickManager.HandleClick()` auf
+- Prüft `EnergySystem.HasEnergy(clickEnergyCost)`
+- Bei Erfolg: `EconomyManager.AddCurrency(clickValue * multiplier)` + `EconomyManager.AddXP(xpPerClick)`
+- Schwarzarbeit-Option: Extra-Button der `RaidRiskSystem.AddRisk(GameConstants.RAID_RISK_INCREMENT)` aufruft und 3× Klick-Wert zahlt
+- `clickValue` = `GameConstants.BASE_CLICK_VALUE`, skaliert durch Upgrades (Sprint 3)
+
+## EnergySystem — Verhalten
+
+- `MaxEnergy`: initial 100f
+- `RegenRate`: initial 5f/s, boosted durch PrivateLifeManager (Sprint 3)
+- Jeder Klick kostet 1 Energie
+- `Update()`: `CurrentEnergy = Min(MaxEnergy, CurrentEnergy + RegenRate * Time.deltaTime)`
+- Feuert `UIEventBroker.RaiseEnergyChanged(CurrentEnergy, MaxEnergy)` wenn sich der Wert ändert
+
+## RaidRiskSystem — Verhalten
+
+- `_riskLevel float [0..1]`
+- Passive Abnahme: `GameConstants.RAID_RISK_DECAY_PER_SEC` pro Sekunde
+- Bei Reach 1.0: Razzia-Event → `EconomyManager.SpendCurrency(raidFine)` + XP-Verlust + Reset auf 0
+- `raidFine` = 30% des aktuellen Guthabens
+- Feuert `UIEventBroker.RaiseRaidRiskChanged(_riskLevel)` bei jeder Änderung
+
+## ProgressionManager — Phase-1-Logik
+
+- Verwaltet `CurrentPhase (int)`, `LocationIndex (int)`
+- Unlock nächster Location: wenn `EconomyManager.Currency >= location.unlockCost`
+- Unlock nächste Phase: wenn alle Locations der aktuellen Phase freigeschaltet
+- Feuert `UIEventBroker.RaiseLocationChanged(index)` und `UIEventBroker.RaisePhaseUnlocked(phase)`
+
+## HUD-Klassen — Muster
+
+Alle HUD-Klassen folgen exakt dem UIEventBroker-Muster aus `volt-kohle-csharp.mdc`.
+Referenz auf TextMeshProUGUI (`[SerializeField] private TextMeshProUGUI _label`).
+
+## GameManager.cs erweitern
+
+Die folgenden auskommentierten Zeilen in `GameManager.cs` einkommentieren und im Inspector verdrahten:
+```csharp
+// [SerializeField] private ProgressionManager  _progressionManager;
+// [SerializeField] private ClickManager        _clickManager;
+// [SerializeField] private EnergySystem        _energySystem;
+// [SerializeField] private RaidRiskSystem      _raidRiskSystem;
+```

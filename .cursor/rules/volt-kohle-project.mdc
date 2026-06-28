@@ -1,0 +1,76 @@
+---
+description: Volt & Kohle — Projektkontext, Architektur und Sprint-Status
+alwaysApply: true
+---
+
+# Volt & Kohle — Projektkontext
+
+Humorvolles Unity C# Idle Game im Portrait-Format für den Google Play Store.
+Engine: Unity 6000.5.1f1 · Sprache: C# · Zielplattform: Android
+
+## Progression (Zero to Hero)
+
+- Phase 1 (Azubi): Castrop-Rauxel → Bottrop → Gelsenkirchen
+- Phase 2 (Meister): Duisburg-Meiderich → Essen → Düsseldorf
+- Phase 3 (CEO): Berlin-Mitte → München
+- Phase 4 (Gigant): Silicon Valley → Mars
+
+## Kern-Architektur
+
+**Manager-Pattern:** Alle Manager sind MonoBehaviours auf dem "GameManager"-GameObject in der Bootstrap-Scene mit `DontDestroyOnLoad`.
+
+**UIEventBroker:** Statischer Event-Bus (`UIEventBroker.cs`). UI-Klassen subscriben IMMER in `OnEnable()` und unsubscriben in `OnDisable()`. Kein direkter Manager-Zugriff aus der UI-Schicht.
+
+**ScriptableObjects:** Alle Upgrades, Locations, Vehicles, Employees, Stocks als `.asset`-Dateien. Ordner: `Assets/_Game/ScriptableObjects/`.
+
+**Zahlen:** Alle Währungen als `double`. Anzeige immer über `NumberFormatter.Format(value)`.
+
+**Persistenz:** `SaveManager.cs` + `SaveData.cs` via Newtonsoft.Json. Auto-Save bei `OnApplicationPause` und `OnApplicationQuit`.
+
+## Ordnerstruktur
+
+```
+Assets/_Game/
+├── Scripts/
+│   ├── Core/          ← Fertig (Sprint 1)
+│   ├── Gameplay/      ← Sprint 2
+│   ├── Phases/        ← Sprint 2+
+│   ├── Lifestyle/     ← Sprint 3+
+│   ├── IAP/           ← Sprint 5+
+│   └── UI/
+│       ├── HUD/       ← Sprint 2
+│       ├── Panels/    ← Sprint 3+
+│       └── Overlays/  ← Sprint 3+
+├── ScriptableObjects/ ← Sprint 3+
+├── Prefabs/
+├── Sprites/
+└── Scenes/
+    ├── Bootstrap.unity
+    └── MainGame.unity
+```
+
+## Sprint-Status
+
+| Sprint | Status | Dateien |
+|--------|--------|---------|
+| Sprint 1 — Foundation | **FERTIG** | UIEventBroker, GameConstants, NumberFormatter, EconomyManager, GameManager, SaveData, SaveManager |
+| Sprint 2 — Core Gameplay | **AUSSTEHEND** | ClickManager, EnergySystem, RaidRiskSystem, ProgressionManager, CurrencyDisplay, EnergyBar, RaidRiskBar |
+| Sprint 3 — Upgrades & Lifestyle | Ausstehend | UpgradeManager + SOs, PrivateLifeManager, OfflineProgressManager |
+| Sprint 4 — Phase 2 & Prestige | Ausstehend | EmployeeManager, PrestigeManager |
+| Sprint 5 — Phase 3 & IAP | Ausstehend | StockMarketManager, PurchaseManager (Mock + RevenueCat) |
+| Sprint 6 — Phase 4 & Launch | Ausstehend | ResearchTreeManager, PowerGridDominance |
+
+## Retention-Mechaniken pro Phase
+
+- **Phase 1:** Schwarzarbeit-Klick (3× Bonus) füllt Zoll-Risiko-Leiste. Bei 100%: Razzia (Geldstrafe + XP-Verlust).
+- **Phase 2:** Mitarbeiter einstellen. Koffein-Level-Upgrades skalieren passives Einkommen exponentiell.
+- **Phase 3:** Mini-Aktienmarkt (Brownian Motion). Ticker-News beeinflussen Kurse.
+- **Phase 4:** Agile-Forschungsbaum + prozentuale Übernahme globaler Stromnetze.
+
+## Prestige-System ("Insolvenz-Pivot")
+
+```
+GruenderPunkte = floor(sqrt(totalEarned / 1_000_000))
+globalMult = 1.0 + (totalFounderPoints * 0.02)
+```
+Reset: Währung, Upgrades, Mitarbeiter, Aktien. Erhalten: GründerPunkte, Fahrzeuge, Beziehungs-Tier, Phase-4-Forschungsbaum.
